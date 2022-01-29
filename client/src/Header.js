@@ -1,5 +1,6 @@
 import React from 'react';
 import Dropdown from './Dropdown.js';
+import Logo from './Logo.js';
 
 function Header ({
     user,
@@ -10,6 +11,9 @@ function Header ({
     return(
         <header id="header" className="card">
             <div className="row">
+                <div className="col-sm-1">
+                    <Logo/>
+                </div>
                 <div className="col-sm-3 flex">
                     <Dropdown
                         items={tokens.map(token => ({
@@ -24,7 +28,7 @@ function Header ({
                         onSelect={selectToken}
                     />
                 </div>
-                <div className="col-sm-9">
+                <div className="col-sm-4">
                     <h1 className="header-title">
                         Dex - <span className="contract-address">Contract Adress: <span className="address">{contracts.dex.options.address}
                             </span></span>
