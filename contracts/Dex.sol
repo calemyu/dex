@@ -7,28 +7,28 @@ import '@openzeppelin/contracts/math/SafeMath.sol';
 contract Dex {
 
     using SafeMath for uint;
-       
+
     enum Side {
         BUY,
         SELL
     }
-    
+
     struct Token {
         bytes32 ticker;
         address tokenAddress;
     }
-    
+
     struct Order {
         uint id;
         address trader;
-        Side side;
+       Side  side;
         bytes32 ticker;
         uint amount;
         uint filled;
         uint price;
         uint date;
     }
-    
+
     mapping(bytes32 => Token) public tokens;
     bytes32[] public tokenList;
     mapping(address => mapping(bytes32 => uint)) public traderBalances;
@@ -37,7 +37,7 @@ contract Dex {
     uint public nextOrderId;
     uint public nextTradeId;
     bytes32 constant DAI = bytes32('DAI');
-    
+
     event NewTrade(
         uint tradeId,
         uint orderId,
@@ -48,23 +48,23 @@ contract Dex {
         uint price,
         uint date
     );
-    
+
     constructor() public {
         admin = msg.sender;
     }
 
     function getOrders(
-      bytes32 ticker, 
-      Side side) 
-      external 
+    bytes32 ticker,
+    Side side)
+    external
       view
       returns(Order[] memory) {
       return orderBook[ticker][uint(side)];
     }
 
-    function getTokens() 
-      external 
-      view 
+    function getTokens()
+      external
+      view
       returns(Token[] memory) {
       Token[] memory _tokens = new Token[](tokenList.length);
       for (uint i = 0; i < tokenList.length; i++) {
@@ -75,7 +75,7 @@ contract Dex {
       }
       return _tokens;
     }
-    
+
     function addToken(
         bytes32 ticker,
         address tokenAddress)
@@ -84,7 +84,7 @@ contract Dex {
         tokens[ticker] = Token(ticker, tokenAddress);
         tokenList.push(ticker);
     }
-    
+
     function deposit(
         uint amount,
         bytes32 ticker)
@@ -97,7 +97,7 @@ contract Dex {
         );
         traderBalances[msg.sender][ticker] = traderBalances[msg.sender][ticker].add(amount);
     }
-    
+
     function withdraw(
         uint amount,
         bytes32 ticker)
@@ -106,11 +106,11 @@ contract Dex {
         require(
             traderBalances[msg.sender][ticker] >= amount,
             'balance too low'
-        ); 
+        );
         traderBalances[msg.sender][ticker] = traderBalances[msg.sender][ticker].sub(amount);
         IERC20(tokens[ticker].tokenAddress).transfer(msg.sender, amount);
     }
-    
+
     function createLimitOrder(
         bytes32 ticker,
         uint amount,
@@ -121,7 +121,7 @@ contract Dex {
         external {
         if(side == Side.SELL) {
             require(
-                traderBalances[msg.sender][ticker] >= amount, 
+                traderBalances[msg.sender][ticker] >= amount,
                 'token balance too low'
             );
         } else {
@@ -139,16 +139,16 @@ contract Dex {
             amount,
             0,
             price,
-            now 
+            now
         ));
-        
+
         uint i = orders.length > 0 ? orders.length - 1 : 0;
         while(i > 0) {
             if(side == Side.BUY && orders[i - 1].price > orders[i].price) {
-                break;   
+                break;
             }
             if(side == Side.SELL && orders[i - 1].price < orders[i].price) {
-                break;   
+                break;
             }
             Order memory order = orders[i - 1];
             orders[i - 1] = orders[i];
@@ -157,7 +157,7 @@ contract Dex {
         }
         nextOrderId++;
     }
-    
+
     function createMarketOrder(
         bytes32 ticker,
         uint amount,
@@ -167,14 +167,14 @@ contract Dex {
         external {
         if(side == Side.SELL) {
             require(
-                traderBalances[msg.sender][ticker] >= amount, 
+                traderBalances[msg.sender][ticker] >= amount,
                 'token balance too low'
             );
         }
         Order[] storage orders = orderBook[ticker][uint(side == Side.BUY ? Side.SELL : Side.BUY)];
         uint i;
         uint remaining = amount;
-        
+
         while(i < orders.length && remaining > 0) {
             uint available = orders[i].amount.sub(orders[i].filled);
             uint matched = (remaining > available) ? available : remaining;
@@ -209,7 +209,7 @@ contract Dex {
             nextTradeId++;
             i++;
         }
-        
+
         i = 0;
         while(i < orders.length && orders[i].filled == orders[i].amount) {
             for(uint j = i; j < orders.length - 1; j++ ) {
@@ -219,12 +219,12 @@ contract Dex {
             i++;
         }
     }
-   
+
     modifier tokenIsNotDai(bytes32 ticker) {
        require(ticker != DAI, 'cannot trade DAI');
        _;
-    }     
-    
+    }
+
     modifier tokenExist(bytes32 ticker) {
         require(
             tokens[ticker].tokenAddress != address(0),
@@ -232,7 +232,7 @@ contract Dex {
         );
         _;
     }
-    
+
     modifier onlyAdmin() {
         require(msg.sender == admin, 'only admin');
         _;
